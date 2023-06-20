@@ -255,12 +255,13 @@ describe("homework80", () => {
         })
         describe("Events", () => {
             it("Check Transfer event", async () => {
-                const { erc20, user1, user2, oneToken } = await loadFixture(deploy);
-                let tx = await erc20.mint(user1.address, oneToken);
+                const { erc20, owner, user1, user2, oneToken } = await loadFixture(deploy);
+                let tx = await erc20.mint( owner.address, oneToken);
                 await tx.wait();
-                await expect(erc20.connect(user1).transfer(user2.address, oneToken))
+                await erc20.approve(user1.address, 1000);
+                await expect(erc20.connect(user1).transferFrom(owner.address, user2.address, 500))
                 .to.emit(erc20, "Transfer")
-                .withArgs(user1.address, user2.address, oneToken);
+                .withArgs(owner.address, user2.address, 500);
             })
             it("Check Approval event", async () => {
                 const { erc20, user1, user2, oneToken } = await loadFixture(deploy);
