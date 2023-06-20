@@ -255,18 +255,18 @@ describe("homework80", () => {
         })
         describe("Events", () => {
             it("Check Transfer event", async () => {
-                // const { erc20, user1, user2, oneToken } = await loadFixture(deploy);
-                // let tx = await erc20.mint(user1.address, oneToken);
-                // await tx.wait();
-                // await expect(erc20.connect(user1).transfer(user2.address, oneToken))
-                // .to.emit(erc20, "Transfer")
-                // .withArgs(user1.address, user2.address, oneToken);
+                const { erc20, user1, user2, oneToken } = await loadFixture(deploy);
+                let tx = await erc20.mint(user1.address, oneToken);
+                await tx.wait();
+                await expect(erc20.connect(user1).transfer(user2.address, oneToken))
+                .to.emit(erc20, "Transfer")
+                .withArgs(user1.address, user2.address, oneToken);
             })
             it("Check Approval event", async () => {
-                // const { erc20, user1, user2, oneToken } = await loadFixture(deploy);
-                // await expect(erc20.connect(user1).approve(user2.address, oneToken))
-                // .to.emit(erc20, "Approval")
-                // .withArgs(user1.address, user2.address, oneToken);
+                const { erc20, user1, user2, oneToken } = await loadFixture(deploy);
+                await expect(erc20.connect(user1).approve(user2.address, oneToken))
+                .to.emit(erc20, "Approval")
+                .withArgs(user1.address, user2.address, oneToken);
             })
         })
     })
