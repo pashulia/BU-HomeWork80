@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { BigNumber } from 'ethers';
 import { ethers } from 'hardhat';
 
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
@@ -8,13 +7,14 @@ describe("homework80", () => {
     async function deploy() {
         const name = "TestToken";
         const symbol = "TTK";
-        const decimals = 18;
-        const oneToken = BigNumber.from(10).pow(decimals);
+        const decimals = 15;
+        const AddressZero = "0x0000000000000000000000000000000000000000";
+        const oneToken = 1000000000000000;
         const [owner, user1, hacker, user2] = await ethers.getSigners();
         const ERC20 = await ethers.getContractFactory("ERC20");
         const erc20 = await ERC20.deploy(name, symbol, decimals);
-        await erc20.deployed();
-        return { erc20, name, symbol, decimals, oneToken, owner, user1, hacker, user2 };
+        await erc20.waitForDeployment();
+        return { erc20, name, symbol, decimals, owner, user1, hacker, user2, AddressZero, oneToken };
     }
 
     describe("Deployment", () => {
@@ -56,16 +56,16 @@ describe("homework80", () => {
                 const totalSupply = await erc20.totalSupply();
                 const tx = await erc20.mint(user1.address, oneToken);
                 await tx.wait();
-                expect(BigNumber.from(totalSupply).add(oneToken))
+                expect(Number(totalSupply )+ oneToken)
                 .to.equal(await erc20.totalSupply());
             })
         })
         describe("Events", () => {
             it("Check Transfer event", async () => {
-                const { erc20, user1, oneToken } = await loadFixture(deploy);
+                const { erc20, user1, AddressZero, oneToken } = await loadFixture(deploy);
                 await expect(erc20.mint(user1.address, oneToken))
                 .to.emit(erc20, "Transfer")
-                .withArgs(ethers.constants.AddressZero, user1.address, oneToken);
+                .withArgs(AddressZero, user1.address, oneToken);
             })
         })
     })
@@ -76,7 +76,7 @@ describe("homework80", () => {
                 const { erc20, user1, oneToken } = await loadFixture(deploy);
                 const tx = await erc20.mint(user1.address, oneToken);
                 await tx.wait();
-                await expect(erc20.connect(user1).burn(oneToken.add(1)))
+                await expect(erc20.connect(user1).burn(oneToken + 1))
                 .to.revertedWith("ERC20: Not enough tokens!");
             })
         })
@@ -86,7 +86,7 @@ describe("homework80", () => {
                 const tx = await erc20.mint(user1.address, oneToken);
                 await tx.wait();
                 await expect(erc20.connect(user1).burn(oneToken))
-                .to.changeTokenBalance(erc20, user1.address, oneToken.mul(-1));
+                .to.changeTokenBalance(erc20, user1.address, oneToken * (-1));
                 
             })
             it("Check change to totalSupply", async () => {
@@ -96,18 +96,18 @@ describe("homework80", () => {
                 const totalSupply = await erc20.totalSupply();
                 tx = await erc20.connect(user1).burn(oneToken);
                 await tx.wait();
-                expect(BigNumber.from(totalSupply).sub(oneToken))
+                expect(Number(totalSupply) - oneToken)
                 .to.equal(await erc20.totalSupply());
             })
         })
         describe("Events", () => {
             it("Check Transfer event", async () => {
-                const { erc20, user1, oneToken } = await loadFixture(deploy);
+                const { erc20, user1, oneToken, AddressZero } = await loadFixture(deploy);
                 let tx = await erc20.mint(user1.address, oneToken);
                 await tx.wait();
                 await expect(erc20.connect(user1).burn(oneToken))
                 .to.emit(erc20, "Transfer")
-                .withArgs(user1.address, ethers.constants.AddressZero, oneToken);
+                .withArgs(user1.address, AddressZero, oneToken);
             })
         })
     })
@@ -117,7 +117,7 @@ describe("homework80", () => {
             it("Check enough tokens", async () => {
                 const { erc20, user1, hacker } = await loadFixture(deploy);
                 const hackerBalance = await erc20.balanceOf(hacker.address);
-                await expect(erc20.connect(hacker).transfer(user1.address, hackerBalance.add(1)))
+                await expect(erc20.connect(hacker).transfer(user1.address, Number(hackerBalance) + 1))
                 .to.revertedWith("ERC20: Not enough tokens!");
             })
         })
@@ -130,7 +130,7 @@ describe("homework80", () => {
                 .to.changeTokenBalances(
                     erc20,
                     [user1.address, user2.address],
-                    [oneToken.mul(-1), oneToken]
+                    [oneToken * (-1), oneToken]
                 )
             })
         })
@@ -153,7 +153,7 @@ describe("homework80", () => {
                 const allowed = await erc20.allowance(user1.address, user2.address);
                 let tx = await erc20.connect(user1).approve(user2.address, oneToken);
                 await tx.wait();
-                expect(allowed.add(oneToken))
+                expect(Number(allowed) + oneToken)
                 .to.equal(await erc20.allowance(user1.address, user2.address));
             })
         })
@@ -174,7 +174,7 @@ describe("homework80", () => {
                 const allowed = await erc20.allowance(user1.address, user2.address);
                 const tx = await erc20.connect(user1).increaseAllowance(user2.address, oneToken);
                 await tx.wait();
-                expect(allowed.add(oneToken))
+                expect(Number(allowed) + oneToken)
                 .to.equal(await erc20.allowance(user1.address, user2.address));
             })
         })
@@ -184,7 +184,7 @@ describe("homework80", () => {
                 const allowed = await erc20.allowance(user1.address, user2.address);
                 await expect(erc20.connect(user1).increaseAllowance(user2.address, oneToken))
                 .to.emit(erc20, "Approval")
-                .withArgs(user1.address, user2.address, allowed.add(oneToken));
+                .withArgs(user1.address, user2.address, Number(allowed) + oneToken);
             })
         })
     })
@@ -198,7 +198,7 @@ describe("homework80", () => {
                 const allowed = await erc20.allowance(user1.address, user2.address);
                 tx = await erc20.connect(user1).decreaseAllowance(user2.address, oneToken);
                 await tx.wait();
-                expect(allowed.sub(oneToken))
+                expect(Number(allowed) - oneToken)
                 .to.equal(await erc20.allowance(user1.address, user2.address));
             })
         })
@@ -210,7 +210,7 @@ describe("homework80", () => {
                 const allowed = await erc20.allowance(user1.address, user2.address);
                 await expect(erc20.connect(user1).decreaseAllowance(user2.address, oneToken))
                 .to.emit(erc20, "Approval")
-                .withArgs(user1.address, user2.address, allowed.sub(oneToken));
+                .withArgs(user1.address, user2.address, Number(allowed) - oneToken);
             })
         })
     })
@@ -221,33 +221,36 @@ describe("homework80", () => {
                 const { erc20, user1, user2, oneToken } = await loadFixture(deploy);
                 const tx = await erc20.mint(user1.address, oneToken);
                 await tx.wait();
-                await expect(erc20.transferFrom(user1.address, user2.address, oneToken.add(1)))
+                await expect(erc20.transferFrom(user1.address, user2.address, oneToken + 1))
                 .to.revertedWith("ERC20: Not enough tokens!");
             })
             it("Check enough allowed", async () => {
-                const { erc20, user1, user2, oneToken } = await loadFixture(deploy);
-                await expect(erc20.transferFrom(user1.address, user2.address, oneToken.add(1)))
+                const { erc20, owner, user1, user2, oneToken } = await loadFixture(deploy);
+                const tx = await erc20.mint(owner.address, oneToken);
+                await tx.wait();
+                await erc20.approve(user1.address, 1000);
+                await expect(erc20.connect(user1).transferFrom(owner.address, user2.address, 1500))
                 .to.revertedWith("ERC20: Not enough allowed!");
             })
         })
         describe("Interaction", () => {
             it("Check change balances", async () => {
-                const { erc20, user1, user2, oneToken } = await loadFixture(deploy);
-                let tx = await erc20.mint(user1.address, oneToken);
+                const { erc20, owner, user1, user2, oneToken } = await loadFixture(deploy);
+                let tx = await erc20.mint(owner.address, oneToken);
                 await tx.wait();
-                await expect(erc20.connect(user1).transfer(user2.address, oneToken))
-                .to.changeTokenBalances(
-                    erc20,
-                    [user1.address, user2.address],
-                    [oneToken.mul(-1), oneToken]
-                )
+                await erc20.approve(user1.address, 1000);
+                await erc20.connect(user1).transferFrom(owner.address, user2.address, 500);
+                expect(await erc20.balanceOf(owner.address)).to.equal(oneToken - 500);
+                expect(await erc20.balanceOf(user2.address)).to.equal(500);
+                
             })
             it("Check change allowed", async () => {
-                // const { erc20, user1, oneToken } = await loadFixture(deploy);
-                // const tx = await erc20.mint(user1.address, oneToken);
-                // await tx.wait();
-                // await expect(erc20.connect(user1).burn(oneToken.add(1)))
-                // .to.revertedWith("ERC20: Not enough tokens!");
+                const { erc20, owner, user1, user2, oneToken } = await loadFixture(deploy);
+                let tx = await erc20.mint(owner.address, oneToken);
+                await tx.wait();
+                await erc20.approve(user1.address, 1000);
+                await erc20.connect(user1).transferFrom(owner.address, user2.address, 500);
+                expect(await erc20.allowance(owner.address, user1.address)).to.equal(1000 - 500);
             })
         })
         describe("Events", () => {
